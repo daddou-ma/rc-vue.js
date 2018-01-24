@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>VirtualDOM.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="VirtualDOM.module_Is.html">Is</a><ul class='methods'><li data-type='method'><a href="VirtualDOM.module_Is.html#~isComponentNode">isComponentNode</a></li><li data-type='method'><a href="VirtualDOM.module_Is.html#~isEventProperty">isEventProperty</a></li><li data-type='method'><a href="VirtualDOM.module_Is.html#~isNodeChanged">isNodeChanged</a></li><li data-type='method'><a href="VirtualDOM.module_Is.html#~isReferenceFunction">isReferenceFunction</a></li><li data-type='method'><a href="VirtualDOM.module_Is.html#~isStatelessComponentNode">isStatelessComponentNode</a></li><li data-type='method'><a href="VirtualDOM.module_Is.html#~isTextNode">isTextNode</a></li></ul></li><li><a href="VirtualDOM.module_VirtualDom.html">VirtualDom</a><ul class='methods'><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~addEventListener">addEventListener</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~createElement">createElement</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~getEventNameFromProperty">getEventNameFromProperty</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~initDocument">initDocument</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~myMethodName">myMethodName</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~rCreate">rCreate</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~render">render</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~setProperties">setProperties</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~setProperty">setProperty</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~updateAttributes">updateAttributes</a></li><li data-type='method'><a href="VirtualDOM.module_VirtualDom.html#~updateElement">updateElement</a></li></ul></li></ul><h3>Namespaces</h3><ul><li><a href="VirtualDOM.html">VirtualDOM</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">VirtualDOM.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/** @namespace VirtualDOM */
+
+/**
+ * rcVue
+ * MIT License
+ * @jsx rc
+ * @module VirtualDom
+ * @memberof VirtualDOM
+ */
+
+const is = require('./is');
+
+/**
+ * @type {Object}
+ */
+let doc = {};
+
+if (typeof document !== 'undefined') {
+	doc = document;
+}
+
+/**
+* @desc This is a description
+* @access private
+* @example
+* dfsdfsdfsd
+* @method myMethodName
+* @param {string} str - some string
+* @param {Object} obj - some object
+* @return {Object} some bool
+*/
+
+
+/**
+ * @method initDocument
+ * @desc Setting the document object for unit testing of the dom.
+ * @param {String} document - the fake document object
+ * @example
+ * import {JSDOM} from 'jsdom';
+ * const dom = new JSDOM('&lt;div id="test">&lt;/div>');
+ * const {document} = dom.window;
+ * const root = document.getElementById('test');
+ * RcVirtualDOM.initDocument(document);
+ */
+const initDocument = function initDocument(document) {
+	doc = document;
+};
+
+
+
+/**
+ * @access public
+ * @desc Render a RComponent to a dom element.
+ * @method render
+ * @param {Class} component - virtual dom node object
+ * @param {Object} $element - dom element object
+ * @param {Function} callback - callback to run after render.
+ * @example
+ * const root = document.getElementById('root');
+ * RcVirtualDOM.render(&lt;TestComponent />, root);
+ */
+const render = function render (component, $element, callback) {
+	const instance = new component.type(component.props);
+	instance.$parent = $element;
+	instance._render();
+	
+	if(typeof callback == 'function') {
+		callback();
+	}
+};
+
+
+/**
+ * @access public
+ * @desc Render a RComponent to a dom element.
+ * @method rCreate
+ * @param {String|Function|Class} type - The type of HTML Tag or the Component Constructor
+ * @param {Object} props - The Component|Node props
+ * @param {...Object} children - Childs
+ * @return {Object}
+ * @example
+ * RcVirtualDOM.rCreate('div', {id: 'container'}, Hello, World !);
+ */
+const rCreate = function rCreate (type, props = {}, ...children) {
+	return {type, props: props || {}, children: children || []};
+};
+
+
+/**
+ * @access private
+ * @desc Render Virtual DOM objects to a real DOM object
+ * @method createElement
+ * @param {Object} node - Virtual DOM object
+ * @return {Object} DOM element
+ */
+const createElement = function createElement (node) {
+	if (is.textNode(node)) {
+		return doc.createTextNode(node);
+	} else if (is.componentNode(node)) {
+		const instance = new node.type(node.props);
+		return createElement(instance.render());
+	} else if (is.statelessComponentNode(node)) {
+		return createElement(node());
+	}
+
+
+	const $element = doc.createElement(node.type);
+
+	setProperties($element, node.props);
+
+	node.children
+		.map(createElement)
+		.map($element.appendChild.bind($element));
+
+	return $element;
+}; 
+
+
+/**
+ * @access private
+ * @desc Set an array of properties to a DOM element
+ * @method setProperties
+ * @param {Object} $element - DOM Element
+ * @param {Array} props - array of properties
+ */
+const setProperties = function setProperties ($element, props) {
+	Object.keys(props).forEach((key) => {
+		setProperty($element, key, props[key]);
+	});
+};
+
+
+/**
+ * @access private
+ * @desc Set a single property to a DOM element
+ * @method setProperty
+ * @param {Object} $element - DOM Element
+ * @param {String} property - property name
+ * @param {String|Function} value - property value
+ */
+const setProperty = function setProperty ($element, property, value) {
+	if (property === 'className') {
+		$element.setAttribute('class', value);
+	} else if (is.eventProperty(property)) {
+		addEventListener($element, property, value);
+		return;
+	} else if (is.referenceFunction(property, value)) {
+		value($element);
+		return;
+	} else {
+
+		$element.setAttribute(property, value);
+	}
+};
+
+
+/**
+ * @access private
+ * @desc Add an event lister to a DOM Element
+ * @method addEventListener
+ * @param {Object} $element - DOM Element
+ * @param {String} name - event name
+ * @param {Function} handler - event handler
+ */
+const addEventListener = function addEventListener ($element, name, handler) {
+	$element.addEventListener(getEventNameFromProperty(name), handler);
+};
+
+
+/**
+ * @access private
+ * @desc Add an event lister to a DOM Element
+ * @method getEventNameFromProperty
+ * @param {String} property - property name
+ * @return {String} event name
+ */
+const getEventNameFromProperty = function getEventNameFromProperty (property) {
+	if (property === 'onClick') {
+		return 'click';
+	} else if (property === 'onChange') {
+		return 'input';
+	}
+};
+
+/**
+ * @access private
+ * @desc update a dom element by compairing the old and new virtual dom objects
+ * @method updateElement
+ * @param {Object} $element - parent DOM Element
+ * @param {Object} oldNode - Old Virtual DOM Node
+ * @param {Object} newNode - New Virtual DOM Node
+ * @param {Number} index - index of the Node in his parent
+ */
+const updateElement = function updateElement ($parent, newNode, oldNode, index = 0) {
+	if (oldNode == undefined) {
+		$parent.appendChild(
+			createElement(newNode)
+		);
+
+	} else if (newNode == undefined) {
+		$parent.removeChild(
+      $parent.childNodes[index]
+    );
+	} else if (is.nodeChanged(newNode, oldNode)) {
+
+    $parent.replaceChild(
+      createElement(newNode),
+      $parent.childNodes[index]
+    );
+
+  } else if (newNode.type) {
+    const newLength = newNode.children.length;
+    const oldLength = oldNode.children.length;
+
+    for (let i = 0; i &lt; newLength || i &lt; oldLength; i++) {
+      updateElement(
+        $parent.childNodes[index],
+        newNode.children[i],
+        oldNode.children[i],  
+        i
+      );
+    }
+
+    updateAttributes($parent.childNodes[index], newNode, oldNode);
+  }
+};
+
+
+/**
+ * @access private
+ * @desc update a dom element attributes
+ * @method updateAttributes
+ * @param {Object} $element - parent DOM Element
+ * @param {Object} oldNode - Old Virtual DOM Node
+ * @param {Object} newNode - New Virtual DOM Node
+ */
+const updateAttributes = function updateAttributes ($element, newNode, oldNode) {
+
+	Object.keys(oldNode.props).forEach((key) => {
+		if(!newNode.props[key]) {
+			$element.removeAttribute(key);
+		}
+	});
+
+	Object.keys(newNode.props).forEach((key) => {
+		if(newNode.props[key] != oldNode.props[key]) {
+			setProperty($element, key, newNode.props[key]);
+		}
+	});
+};
+
+export default {
+	initDocument,
+	render,
+	rCreate,
+	updateElement
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.4</a> on Fri Sep 08 2017 17:35:58 GMT+0100 (CET) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
